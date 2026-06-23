@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>css选择器</title>
+    <style>
+        /* 元素选择器 */
+        h2{
+            color: cadetblue;
+        }
+        /* 类选择器 */
+        .highlight{
+            background-color: aquamarine;
+        }
+        /* id选择器 */
+        #header{
+            font-size: 36px;
+        }
+        /* 通用选择器 ,下面代码是把所有字体改成楷体*/
+        *{
+            font-family: KaiTi;
+            font-weight: 600;
+        }
+        /* 子元素选择器，只改变子元素，不改变父元素 */
+        .father>.son{
+            color: chocolate;
+        }
+        /* 后代选择器 */
+        .father p{
+            color: rgb(18, 99, 170);
+            font-size: 24px;
+        }
+        /* 相邻兄弟选择器,只会在相邻兄弟选择器之后的第一个标签显示 */
+        h3+p{
+            background-color: beige;
+        }
+        /* 伪类选择器,用于用户交互，如下面的代码就是鼠标悬停（hover）会变色 */
+        #element:hover{
+            background-color: rgb(87, 151, 176);
+        }
+        
+    </style>
+</head>
+<body>
+    <h1>不同类型的选择器</h1>
+    <h2>这是一个元素选择器</h2>
+    <h3 class="highlight">这是一个类选择器</h3>
+    <h4 id="header">这是一个id选择器</h4>
+    <div class="father">
+       
+        <p class="son">这是一个子元素选择器</p>
+        <div>
+            <p class="grandson">这是一个后代选择器</p>
+        </div>
+    </div>
+    <p>这是一个普通的p标签</p>
+    <h3>这是一个相邻兄弟选择器示例</h3>
+    <p>这是另一个p标签</p>
+    <h3 id="element">这是一个伪类选择器</h3>
+</body>
+</html>

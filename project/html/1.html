@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merry Christmas WebGL - 3D 互动系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        cursive: ['Georgia', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #020205; }
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        @keyframes rotate-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-rotate { animation: rotate-slow 8s linear infinite; }
+    </style>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/gsap@3.12.2/dist/gsap.min.js"></script>
+    
+    <script src="https://unpkg.com/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+</head>
+<body>
+
+    <div id="root" class="relative w-full h-full"></div>
+    <video id="webcam" class="hidden" autoplay playsinline></video>
+
+    <script>
+        // ==========================================
+        // 1. 原生 JS 状态管理（替代 Zustand）
+        // ==========================================
+        const AppState = {
+            phase: 'tree', // 'tree' | 'blooming' | 'nebula' | 'collapsing'
+            gesture: 'NONE', // 'NONE' | 'OPEN_PALM' | 'CLOSED_FIST'
+            isCameraOn: false,
+            activeIndex: 0,
+            
+            // 状态变更监听器，自动更新UI
+            update(key, value) {
+                this[key] = value;
+                if (key === 'phase') {
+                    const el = document.getElementById('ui-phase');
+                    if (el) el.innerText = value;
+                }
+                if (key === 'gesture') {
+                    const el = document.getElementById('ui-gesture');
+                    if (el) el.innerText = value;
+                }
+            }
+        };
+
+        // ==========================================
+        // 2. src/utils/geometry.js - 数学几何算法生成器
+        // ==========================================
+        const GeometryUtils = {
+            generateTreeCoords: (count) => {
+                const positions = [];
+                for (let i = 0; i < count; i++) {
+                    const r = Math.random();
+                    const theta = Math.random() * Math.PI * 2;
+                    const h = Math.random() * 5; 
+                    const radiusAtHeight = ((5 - h) / 5) * 2.0; 
+                    
+                    const x = Math.cos(theta) * radiusAtHeight * r;
+                    const z = Math.sin(theta) * radiusAtHeight * r;
+                    const y = h - 2.5; 
+                    positions.push(x, y, z);
+                }
+                return new Float32Array(positions);
+            },
+            generateNebulaCoords: (count) => {
+                const positions = [];
+                for (let i = 0; i < count; i++) {
+                    const theta = Math.random() * Math.PI * 2;
+                    const r = 4.0 + Math.random() * 2.5; 
+                    const x = Math.cos(theta) * r;
+                    const z = Math.sin(theta) * r;
+                    const y = (Math.random() - 0.5) * 1.5; 
+                    positions.push(x, y, z);
+                }
+                return new Float32Array(positions);
+            }
+        };
+
+        const samplePhotos = Array.from({ length: 24 }, (_, i) => ({
+            id: i,
+            url: `https://picsum.photos/${i % 2 === 0 ? '400/300' : '300/400'}?random=${i}`,
+            isLandscape: i % 2 === 0
+        }));
+
+        // ==========================================
+        // 3. 全局应用主类
+        // ==========================================
+        class MerryChristmasApplication {
+            constructor() {
+                this.container = document.getElementById('root');
+                this.particleCount = 5500;
+                this.ornamentCount = 150;
+                
+                this.initEngine();
+                this.initLights();
+                this.initEnvironment();
+                this.buildComponents();
+                this.initInteraction();
+                this.mountUI();
+                this.initMediaPipe();
+                
+                window.addEventListener('resize', () => this.onWindowResize());
+                this.animate();
+            }
+
+            initEngine() {
+                this.scene = new THREE.Scene();
+                this.scene.fog = new THREE.FogExp2(0x020205, 0.03);
+
+                this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.camera.position.set(0, 0, 8);
+
+                this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                this.container.appendChild(this.renderer.domElement);
+                
+                this.raycaster = new THREE.Raycaster();
+                this.mouse = new THREE.Vector2(-999, -999);
+                this.targetCameraPos = new THREE.Vector3(0, 0, 8);
+                this.targetCameraLookAt = new THREE.Vector3(0, 0, 0);
+            }
+
+            initLights() {
+                this.mainLight = new THREE.PointLight(0xffaa44, 2, 20);
+                this.mainLight.position.set(3, 2, 3);
+                this.scene.add(this.mainLight);
+
+                this.coolLight = new THREE.PointLight(0x4488ff, 1.5, 20);
+                this.coolLight.position.set(-3, -1, -3);
+                this.scene.add(this.coolLight);
+
+                this.spotLight = new THREE.SpotLight(0xffffff, 5, 15, Math.PI / 6, 0.5, 1);
+                this.spotLight.position.set(0, 6, 0);
+                this.scene.add(this.spotLight);
+            }
+
+            initEnvironment() {
+                const starGeo = new THREE.BufferGeometry();
+                const starPositions = new Float32Array(2000 * 3);
+                for(let i=0; i<2000*3; i++) starPositions[i] = (Math.random() - 0.5) * 40;
+                starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+                const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.04, transparent: true, opacity: 0.8 });
+                this.sparkles = new THREE.Points(starGeo, starMat);
+                this.scene.add(this.sparkles);
+
+                const envGeo = new THREE.SphereGeometry(20, 16, 16);
+                const envMat = new THREE.MeshBasicMaterial({ color: 0x111122, wireframe: true, transparent: true, opacity: 0.05 });
+                const envMesh = new THREE.Mesh(envGeo, envMat);
+                this.scene.add(envMesh);
+            }
+
+            buildComponents() {
+                this.treePositions = GeometryUtils.generateTreeCoords(this.particleCount);
+                this.nebulaPositions = GeometryUtils.generateNebulaCoords(this.particleCount);
+                
+                this.currentParticlePositions = this.treePositions.slice();
+                this.particleVelocities = new Float32Array(this.particleCount * 3);
+
+                this.particleGeo = new THREE.BufferGeometry();
+                this.particleGeo.setAttribute('position', new THREE.BufferAttribute(this.currentParticlePositions, 3));
+                
+                this.particleMat = new THREE.PointsMaterial({
+                    color: 0x0dd674,
+                    size: 0.05,
+                    transparent: true,
+                    opacity: 0.75,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false
+                });
+                this.particleSystem = new THREE.Points(this.particleGeo, this.particleMat);
+                this.scene.add(this.particleSystem);
+
+                this.ornamentGeo = new THREE.SphereGeometry(0.08, 16, 16);
+                const colors = [0xd4af37, 0x800020, 0x708090, 0x4682b4, 0xdb7093]; 
+                this.ornamentMaterials = colors.map(c => new THREE.MeshStandardMaterial({
+                    color: c, metalness: 0.9, roughness: 0.1
+                }));
+
+                this.ornamentGroup = new THREE.Group();
+                this.ornamentData = [];
+                
+                for(let i=0; i<this.ornamentCount; i++) {
+                    const matIdx = i % colors.length;
+                    const mesh = new THREE.Mesh(this.ornamentGeo, this.ornamentMaterials[matIdx]);
+                    
+                    const t = i / this.ornamentCount;
+                    const theta = t * Math.PI * 14; 
+                    const h = t * 4.6;
+                    const r = ((4.6 - h) / 4.6) * 1.6;
+                    
+                    mesh.position.set(Math.cos(theta)*r, h - 2.3, Math.sin(theta)*r);
+                    mesh.userData = { 
+                        treePos: mesh.position.clone(),
+                        nebulaPos: new THREE.Vector3(Math.cos(theta)*(4.5+Math.random()), (Math.random()-0.5)*1, Math.sin(theta)*(4.5+Math.random())),
+                        velocity: new THREE.Vector3()
+                    };
+                    
+                    this.ornamentGroup.add(mesh);
+                    this.ornamentData.push(mesh);
+                }
+                this.scene.add(this.ornamentGroup);
+
+                const starShape = new THREE.SphereGeometry(0.25, 8, 8);
+                const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffea00 });
+                this.topStar = new THREE.Mesh(starShape, starMaterial);
+                this.topStar.position.set(0, 2.4, 0);
+                this.scene.add(this.topStar);
+
+                this.photoGroup = new THREE.Group();
+                this.photoMeshes = [];
+                
+                const photoFrameGeo = new THREE.PlaneGeometry(1.2, 1.5);
+                const innerTextureGeo = new THREE.PlaneGeometry(1.0, 1.1);
+
+                samplePhotos.forEach((photo, idx) => {
+                    const singlePhotoContainer = new THREE.Group();
+                    
+                    const frameMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f0, roughness: 0.5 });
+                    const frameMesh = new THREE.Mesh(photoFrameGeo, frameMat);
+                    singlePhotoContainer.add(frameMesh);
+
+                    if(photo.isLandscape) {
+                        frameMesh.rotation.z = Math.PI / 2;
+                    }
+
+                    const loader = new THREE.TextureLoader();
+                    loader.crossOrigin = 'anonymous'; // 防止跨域图片卡死
+                    const innerMat = new THREE.MeshBasicMaterial({ color: 0xcccccc });
+                    loader.load(photo.url, (tex) => {
+                        innerMat.map = tex;
+                        innerMat.needsUpdate = true;
+                    });
+                    
+                    const innerMesh = new THREE.Mesh(innerTextureGeo, innerMat);
+                    innerMesh.position.z = 0.01; 
+                    if(photo.isLandscape) innerMesh.rotation.z = Math.PI / 2;
+                    
+                    singlePhotoContainer.add(innerMesh);
+
+                    const angle = (idx / samplePhotos.length) * Math.PI * 2;
+                    const radius = 5.0;
+                    singlePhotoContainer.position.set(Math.cos(angle)*radius, 0, Math.sin(angle)*radius);
+                    singlePhotoContainer.lookAt(0, 0, 0);
+                    
+                    singlePhotoContainer.scale.set(0.001, 0.001, 0.001);
+                    singlePhotoContainer.userData = { angle, index: idx };
+
+                    this.photoGroup.add(singlePhotoContainer);
+                    this.photoMeshes.push(singlePhotoContainer);
+                });
+                this.scene.add(this.photoGroup);
+            }
+
+            initInteraction() {
+                window.addEventListener('mousemove', (e) => {
+                    this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                    this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                });
+                
+                window.addEventListener('click', () => {
+                    if (AppState.phase !== 'nebula') return;
+                    this.raycaster.setFromCamera(this.mouse, this.camera);
+                    const intersects = this.raycaster.intersectObjects(this.photoGroup.children, true);
+                    
+                    if (intersects.length > 0) {
+                        let obj = intersects[0].object;
+                        while(obj.parent && obj.parent !== this.photoGroup) {
+                            obj = obj.parent;
+                        }
+                        this.focusPhoto(obj);
+                    }
+                });
+            }
+
+            focusPhoto(photoObj) {
+                const idx = photoObj.userData.index;
+                AppState.update('activeIndex', idx);
+                
+                const angle = photoObj.userData.angle;
+                const camR = 3.2; 
+                this.targetCameraPos.set(Math.cos(angle)*camR, 0.2, Math.sin(angle)*camR);
+                this.targetCameraLookAt.set(Math.cos(angle)*5.0, 0, Math.sin(angle)*5.0);
+            }
+
+            initMediaPipe() {
+                this.hands = new Hands({
+                    locateFile: (file) => `https://unpkg.com/@mediapipe/hands/${file}`
+                });
+
+                this.hands.setOptions({
+                    maxNumHands: 1,
+                    modelComplexity: 1,
+                    minDetectionConfidence: 0.7,
+                    minTrackingConfidence: 0.7
+                });
+
+                this.hands.onResults((results) => {
+                    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                        const landmarks = results.multiHandLandmarks[0];
+                        
+                        const indexOpen = landmarks[8].y < landmarks[6].y;
+                        const middleOpen = landmarks[12].y < landmarks[10].y;
+                        const ringOpen = landmarks[16].y < landmarks[14].y;
+                        const pinkyOpen = landmarks[20].y < landmarks[18].y;
+                        
+                        let currentGesture = 'NONE';
+                        if (indexOpen && middleOpen && ringOpen && pinkyOpen) {
+                            currentGesture = 'OPEN_PALM';
+                        } else if (!indexOpen && !middleOpen && !ringOpen && !pinkyOpen) {
+                            currentGesture = 'CLOSED_FIST';
+                        }
+
+                        AppState.update('gesture', currentGesture);
+                        this.handleGestureTrigger(currentGesture, landmarks);
+                    } else {
+                        AppState.update('gesture', 'NONE');
+                    }
+                });
+
+                this.webcamElement = document.getElementById('webcam');
+                this.cameraUtils = new Camera(this.webcamElement, {
+                    onFrame: async () => {
+                        if (AppState.isCameraOn) {
+                            await this.hands.send({ image: this.webcamElement });
+                        }
+                    },
+                    width: 320,
+                    height: 240
+                });
+            }
+
+            handleGestureTrigger(gesture, landmarks) {
+                const currentPhase = AppState.phase;
+                
+                if (gesture === 'OPEN_PALM' && currentPhase === 'tree') {
+                    this.triggerBlooming();
+                } else if (gesture === 'CLOSED_FIST' && currentPhase === 'nebula') {
+                    this.triggerCollapsing();
+                } else if (gesture === 'OPEN_PALM' && currentPhase === 'nebula') {
+                    const handX = landmarks[9].x; 
+                    if(handX < 0.35) {
+                        this.photoGroup.rotation.y += 0.05; 
+                    } else if(handX > 0.65) {
+                        this.photoGroup.rotation.y -= 0.05; 
+                    }
+                }
+            }
+
+            triggerBlooming() {
+                AppState.update('phase', 'blooming');
+                const tl = gsap.timeline({
+                    onComplete: () => {
+                        AppState.update('phase', 'nebula');
+                    }
+                });
+
+                tl.to(this.particleMat, { size: 0.12, duration: 0.4, ease: "power2.out" });
+                
+                for (let i = 0; i < this.particleCount; i++) {
+                    const i3 = i * 3;
+                    tl.to(this.currentParticlePositions, {
+                        [i3]: this.nebulaPositions[i3] * 1.5,
+                        [i3+1]: this.nebulaPositions[i3+1] * 1.5,
+                        [i3+2]: this.nebulaPositions[i3+2] * 1.5,
+                        duration: 1.2,
+                        ease: "bounce.out"
+                    }, 0);
+                }
+
+                this.ornamentData.forEach(mesh => {
+                    tl.to(mesh.position, {
+                        x: mesh.userData.nebulaPos.x * 1.2,
+                        y: mesh.userData.nebulaPos.y * 1.2,
+                        z: mesh.userData.nebulaPos.z * 1.2,
+                        duration: 1.4,
+                        ease: "power3.out"
+                    }, 0);
+                });
+
+                tl.to(this.topStar.scale, { x:0, y:0, z:0, duration: 0.5 }, 0);
+
+                this.photoMeshes.forEach(mesh => {
+                    tl.to(mesh.scale, { x: 1, y: 1, z: 1, duration: 1.0, ease: "back.out(1.7)" }, 0.6);
+                });
+                
+                this.targetCameraPos.set(0, 5, 11);
+                this.targetCameraLookAt.set(0, 0, 0);
+            }
+
+            triggerCollapsing() {
+                AppState.update('phase', 'collapsing');
+                const tl = gsap.timeline({
+                    onComplete: () => {
+                        AppState.update('phase', 'tree');
+                        this.targetCameraPos.set(0, 0, 8);
+                        this.targetCameraLookAt.set(0, 0, 0);
+                    }
+                });
+
+                this.photoMeshes.forEach(mesh => {
+                    tl.to(mesh.scale, { x: 0.001, y: 0.001, z: 0.001, duration: 0.6 }, 0);
+                });
+
+                for (let i = 0; i < this.particleCount; i++) {
+                    const i3 = i * 3;
+                    tl.to(this.currentParticlePositions, {
+                        [i3]: this.treePositions[i3],
+                        [i3+1]: this.treePositions[i3+1],
+                        [i3+2]: this.treePositions[i3+2],
+                        duration: 1.5,
+                        ease: "power4.inOut"
+                    }, 0);
+                }
+
+                this.ornamentData.forEach(mesh => {
+                    tl.to(mesh.position, {
+                        x: mesh.userData.treePos.x,
+                        y: mesh.userData.treePos.y,
+                        z: mesh.userData.treePos.z,
+                        duration: 1.5,
+                        ease: "power4.inOut"
+                    }, 0);
+                });
+
+                tl.to(this.topStar.scale, { x:1, y:1, z:1, duration: 0.8 }, 0.8);
+                tl.to(this.particleMat, { size: 0.05, duration: 0.5 }, 1.0);
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+
+                const phase = AppState.phase;
+
+                this.camera.position.lerp(this.targetCameraPos, 0.05);
+                this.camera.lookAt(this.targetCameraLookAt);
+
+                if(phase === 'tree' || phase === 'collapsing') {
+                    this.particleSystem.rotation.y += 0.003;
+                    this.ornamentGroup.rotation.y += 0.003;
+                } else if(phase === 'nebula') {
+                    this.photoGroup.rotation.y += 0.001; 
+                }
+
+                if (phase === 'tree') {
+                    this.raycaster.setFromCamera(this.mouse, this.camera);
+                    const posAttr = this.particleGeo.attributes.position;
+                    
+                    const spacePlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+                    const intersectPoint = new THREE.Vector3();
+                    this.raycaster.ray.intersectPlane(spacePlane, intersectPoint);
+
+                    for (let i = 0; i < this.particleCount; i++) {
+                        const i3 = i * 3;
+                        const pX = this.currentParticlePositions[i3];
+                        const pY = this.currentParticlePositions[i3+1];
+
+                        const dx = pX - intersectPoint.x;
+                        const dy = pY - intersectPoint.y;
+                        const dist = Math.hypot(dx, dy);
+
+                        if (dist < 1.2) { 
+                            const force = (1.2 - dist) * 0.15;
+                            this.particleVelocities[i3] += (dx / dist) * force;
+                            this.particleVelocities[i3+1] += (dy / dist) * force;
+                        }
+
+                        const homeX = this.treePositions[i3];
+                        const homeY = this.treePositions[i3+1];
+                        
+                        this.particleVelocities[i3] += (homeX - pX) * 0.04;
+                        this.particleVelocities[i3+1] += (homeY - pY) * 0.04;
+                        
+                        this.particleVelocities[i3] *= 0.85;
+                        this.particleVelocities[i3+1] *= 0.85;
+
+                        this.currentParticlePositions[i3] += this.particleVelocities[i3];
+                        this.currentParticlePositions[i3+1] += this.particleVelocities[i3+1];
+                    }
+                    posAttr.needsUpdate = true;
+                } else if (phase === 'nebula') {
+                    const posAttr = this.particleGeo.attributes.position;
+                    for (let i = 0; i < this.particleCount; i++) {
+                        const i3 = i * 3;
+                        this.currentParticlePositions[i3] += Math.sin(Date.now()*0.001 + i)*0.002;
+                        this.currentParticlePositions[i3+1] += Math.cos(Date.now()*0.0015 + i)*0.002;
+                    }
+                    posAttr.needsUpdate = true;
+                }
+
+                this.sparkles.rotation.y += 0.0005;
+                this.renderer.render(this.scene, this.camera);
+            }
+
+            onWindowResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            mountUI() {
+                const uiContainer = document.createElement('div');
+                uiContainer.className = "absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-6 text-white";
+                
+                uiContainer.innerHTML = `
+                    <div class="flex justify-between items-start w-full pointer-events-auto">
+                        <div class="glass p-4 rounded-xl flex flex-col gap-1 text-sm max-w-xs">
+                            <div class="text-emerald-400 font-bold flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                                状态诊断面板
+                            </div>
+                            <div>当前阶段: <span id="ui-phase" class="font-mono text-amber-300">tree</span></div>
+                            <div>手势识别: <span id="ui-gesture" class="font-mono text-cyan-300">NONE</span></div>
+                            <div class="text-xs text-gray-400 mt-2">提示：[张开五指] 触发炸开/左右滑动翻页；[紧握拳头] 触发还原收缩。</div>
+                        </div>
+                        
+                        <div class="glass p-3 rounded-2xl flex flex-col items-center gap-2">
+                            <div class="w-32 h-24 bg-black/40 rounded-lg overflow-hidden relative border border-white/10">
+                                <div id="cam-closed-placeholder" class="absolute inset-0 flex items-center justify-center text-xs text-gray-500">CAM OFF</div>
+                            </div>
+                            <button id="btn-cam" class="pointer-events-auto px-3 py-1 bg-white/10 hover:bg-white/20 active:scale-95 transition text-xs rounded-full font-medium tracking-wide border border-white/20">
+                                OPEN CAMERA
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+                        <h1 class="font-cursive text-6xl md:text-7xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.6)]">
+                            Merry Christmas
+                        </h1>
+                        <p class="text-xs tracking-[0.4em] uppercase text-gray-400/80 mt-3 font-light">Interactive WebGL Experience</p>
+                    </div>
+
+                    <div class="w-full flex justify-center pointer-events-auto mb-4">
+                        <div class="glass px-6 py-3 rounded-full flex items-center gap-4 border border-white/20 shadow-lg shadow-black/50">
+                            <div id="music-disc" class="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center cursor-pointer shadow-md shadow-emerald-500/20">
+                                <svg class="w-4 h-4 text-white animate-rotate" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M14 12a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-xs font-semibold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-300">Merry Christmas Mr. Lawrence</span>
+                                <span class="text-[10px] text-gray-400 font-light">Ryuichi Sakamoto</span>
+                            </div>
+                            <audio id="bgm" loop src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"></audio>
+                        </div>
+                    </div>
+                `;
+                this.container.appendChild(uiContainer);
+
+                const btnCam = document.getElementById('btn-cam');
+                const camPlaceholder = document.getElementById('cam-closed-placeholder');
+                const bgm = document.getElementById('bgm');
+                const musicDisc = document.getElementById('music-disc');
+
+                btnCam.addEventListener('click', () => {
+                    const isOn = !AppState.isCameraOn;
+                    AppState.update('isCameraOn', isOn);
+                    
+                    if(isOn) {
+                        this.webcamElement.classList.remove('hidden');
+                        this.cameraUtils.start();
+                        btnCam.innerText = "CLOSE CAMERA";
+                        btnCam.classList.add("bg-red-500/20", "text-red-300");
+                        camPlaceholder.classList.add('hidden');
+                    } else {
+                        this.cameraUtils.stop();
+                        btnCam.innerText = "OPEN CAMERA";
+                        btnCam.classList.remove("bg-red-500/20", "text-red-300");
+                        camPlaceholder.classList.remove('hidden');
+                    }
+                });
+
+                let isPlaying = false;
+                musicDisc.addEventListener('click', () => {
+                    if(!isPlaying) {
+                        bgm.play().catch(()=>{});
+                        musicDisc.classList.add('shadow-[0_0_15px_rgba(16,185,129,0.6)]');
+                    } else {
+                        bgm.pause();
+                        musicDisc.classList.remove('shadow-[0_0_15px_rgba(16,185,129,0.6)]');
+                    }
+                    isPlaying = !isPlaying;
+                });
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            new MerryChristmasApplication();
+        });
+    </script>
+</body>
+</html>

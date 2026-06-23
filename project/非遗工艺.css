@@ -1,0 +1,457 @@
+/* 清除默认边距 */
+*{
+    margin: 0;
+    padding: 0;
+}
+/* * {
+    background: #000 !important;
+    color: #0f0 !important;
+    outline: solid #f00 1px !important;
+} */
+/* 清除a标签默认样式 */
+/* body{
+    background: url("./背景.jpg") no-repeat center center fixed;
+    /*兼容浏览器版本*/
+    /* -webkit-background-size: cover;
+    -o-background-size: cover;                
+    background-size: cover;
+
+} */ 
+a{
+    text-decoration: none;
+    color: rgb(0, 0, 0);
+}
+.header{
+    width: 100%;
+    /* position: fixed; */
+    top: 0;
+    z-index: 9999;
+    position: sticky;/* 新属性sticky */
+}
+.nav{
+
+   background-color:rgb(239, 190, 125) ; 
+    height: 80px;
+    width: 100%;
+    margin: 0;
+}
+.nav>ul{
+    margin-left: 140px;
+}
+.nav>ul>li{
+    position: relative;
+    height: 80px;
+    width: 100px;
+    padding: 0 20px;
+    float: left;
+    list-style: none;
+   
+}
+/* 把导航条的字改变 */
+.nav>ul>li>a{
+    color: rgb(88, 31, 31);
+    font-size: 1.1em;
+    line-height: 100px;
+    height: 80px;
+    width: 80px;
+    border-radius: 20px;
+    transition: 0.2s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+
+}
+.nav>ul>li>a:hover{
+    background: rgb(100, 32, 23);
+    color:rgb(239, 190, 125) ;
+}
+/* 导航栏的登录按钮 */
+.nav .btnLogin-popup{
+    top: 15px;
+    position: absolute;
+    left: 93%;
+    width: 50px;
+    height: 50px;
+    /* float: right; */
+    /* right: 24px; */
+    background: rgb(144, 46, 34);
+    border: none;
+    outline: none;
+    border-radius: 50px;
+    /* cursor: pointer; */
+    font-size: 1.1em;
+    color: rgb(222, 176, 137);
+    font-weight: 500;
+    /* margin-left: 40px; */
+    overflow: hidden;
+    transition: .5s;
+}
+.nav .btnLogin-popup:hover{
+background: rgb(100, 32, 23);
+color: rgb(239, 190, 125);
+}
+
+/* 汉服logo */
+.header a img{
+    float: left;
+    margin-left: 80px;
+    width: 80px;
+}
+/* 搜索的整个大框架 */
+.search{
+    width: 400px;
+    height: 80px;
+    float: right;
+   right: 12%;
+   display: flex;
+   justify-content: center;
+   align-items: center;
+   position: absolute;
+}
+.search-btn:hover{
+    background: rgb(100, 32, 23);
+}
+/* 搜索框 */
+.search-box{
+    position:relative;
+    background: rgb(144, 46, 34);
+    height: 50px;
+    width: 50px;
+    /* width: 240px; */
+    border-radius: 60px;
+    /* padding: 10px; */
+    transition: .5s;
+    overflow: hidden;
+}
+/* 点击搜索图标时搜索框展开 */
+.changeWidth{
+    width: 400px;
+
+}
+/* 搜索图标 */
+.search-btn{
+    color: rgb(239, 190, 125);
+    /* float: right; */
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgb(144, 46, 34);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* text-decoration: none; */
+   /* transition:all  .4s; */
+}
+/* 搜索的输入框 */
+.textInput{
+    width: 320px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    top: 0;
+    left: 60px;
+}
+/* 搜索的输入框 */
+.textInput input{
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: none;
+    outline: none;
+    font-size: 16px;
+    color: rgb(239, 190, 125);
+
+}
+/* 清除的小按钮 */
+.clear{
+    width: 15px;
+    height: 15px;
+    position: absolute;
+    right: 22%;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+}
+/* 第一个/ */
+.clear::before{
+    content: '';
+    width: 1px;
+    height: 15px;
+    background-color: rgb(228, 228, 228);
+    transform: rotate(45deg);
+    position: absolute;
+}
+/* 第二个\ */
+.clear::after{
+    content: '';
+    width: 1px;
+    height: 15px;
+    background-color: rgb(245, 247, 249);
+    transform: rotate(315deg);
+}
+/* go的那个按钮 */
+#go{
+    width: 15%;
+    height: 60%;
+    position: absolute;
+    /* top: 22%; */
+    right: 0;
+    border-radius: 100px;
+    color: rgb(239, 190, 125);
+    background-color: rgb(144, 46, 34);
+    /* 渐变色 */
+    /* background: linear-gradient(rgb(163, 163, 185),rgb(155, 149, 149)); */
+}
+/* go悬停时变色 */
+#go:hover{
+    cursor: pointer;
+    background: rgb(100, 32, 23);
+
+}
+/* 登陆注册的大框架 */
+.wrapper{
+    position: fixed;
+    margin-top: 10%;
+    /* right: 30px; */
+    left: 35%;
+    /* top: 45%; */
+    width: 400px;
+    height: 440px;
+    background: transparent;
+    border: 2px solid rgb(239, 190, 125);
+    border-radius: 20px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 0 30px rgba(0, 0, 0,.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    transform: scale(0);
+    transition:transform .5s ease, height .2s ease;
+}
+/* 当点击登录按钮时会弹出登录框 */
+.wrapper.active-popup{
+    transform: scale(1);
+}
+/* 点击没有帐号，注册时大登录框会变长 */
+.wrapper.active{
+    height: 500px;
+}
+/* 登录框右移 */
+.wrapper .form-box.login{
+    /* display: none; */
+    transition: transform .18s ease;
+    transform: translateX(0px);
+}
+/*  点击没有帐号，注册时，登录框会左移并不显示 */
+.wrapper.active .form-box.login{
+    transition: none;
+    transform: translateX(-400px);
+}
+/* 注册框右移 */
+.wrapper .form-box.register{
+    /* display: none; */
+    position: absolute;
+    transform: translateX(400px);
+}
+/*  点击已有帐号，登录时，登录框会右移 */
+.wrapper.active .form-box.register{
+    /* display: none; */
+    transition: transform .18s ease;
+    transform: translateX(0px);
+}
+/* 登录框的关闭按钮 */
+.wrapper .icon-close{
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 45px;
+    height: 45px;
+    background: rgb(144, 46, 34);
+    font-size: 2em;
+    color: rgb(239, 190, 125);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-bottom-left-radius: 20px;
+    cursor: pointer;
+    z-index: 1;
+}
+/* 登录注册的框架 */
+.wrapper .form-box login {
+    width: 100%;
+    padding: 40px;
+}
+/* 标题，登录，注册 */
+.form-box  h2{
+    font-size: 2em;
+    color: rgb(239, 190, 125);
+    text-align: center;
+}
+
+.input-box{
+    position: relative;
+    width: 100%;
+    height: 50px;
+    border-bottom: 2px solid rgb(130, 51, 40);
+    margin: 30px 0;
+}
+.input-box label{
+    position: absolute;
+    top: 50%;
+    left: 5px;
+    transform: translateY(-50%);
+    font-size: 1em;
+    color: rgb(239, 190, 125);
+    font-weight: 500;
+    pointer-events: none;
+    transition: .5s;
+}
+/* 点击Email或password时会出现的动态变化~~~~简直就是魔法！！！ */
+.input-box input:focus~label,
+.input-box input:valid~label{
+    top: -5px;
+}
+/* 把输入的那个框框去掉 */
+.input-box input{
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    /* 输入的文字 */
+    font-size: 1em;
+    color: rgb(67, 32, 32);
+    font-weight: 600;
+    padding: 0 35px 0 5px;
+}
+/* 把图标放到右边 */
+.input-box .icon{
+    position: absolute;
+    right:  8px;
+    font-size: 1.2em;
+    color: rgb(144, 46, 34);
+    line-height: 57px;
+}
+/* 记住我 */
+.remember-forget{
+    font-size: .9em;
+    color: rgb(239, 190, 125);
+    font-weight: 500;
+    margin: -15px 0 15px;
+    display: flex;
+    justify-content: space-between;
+}
+/* 记住我前面的小框框 */
+.remember-forget label input{
+    accent-color: rgb(144, 46, 34);
+    margin-right: none;
+}
+/* 忘记密码 */
+.remember-forget a{
+    color: rgb(239, 190, 125);
+}
+/* 忘记密码悬停下划线 */
+.remember-forget a:hover{
+    text-decoration: underline;
+}
+/* 登录注册按钮 */
+.btn{
+    width:100%;
+    height: 45px;
+    background: rgb(144, 46, 34);
+    border: none;
+    outline: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1em;
+    color: rgb(239, 190, 125);
+    font-weight: 500;
+}
+/* 没有账号 */
+.login-register{
+    font-size: .9em;
+    color: rgb(239, 190, 125);
+    text-align: center;
+    font-weight: 500;
+    margin: 25px 0 10px;
+}
+/* 注册 */
+.login-register p a{
+    color: rgb(239, 190, 125);
+    text-decoration: none;
+    font-weight: 500;
+}
+.login-register p a:hover{
+    text-decoration: underline;
+}
+.header .header1{
+    width: 75%;
+    height: 60px;
+    /* background-color: black; */
+    border-bottom: 1px solid rgb(188, 150, 145);
+    line-height: 55px;
+    color: rgb(239, 190, 125);
+    margin: 0 auto;
+    /* margin-left: 40px; */
+    /* margin-top: 30px; */
+    display: flex;
+    background-color: white;
+    /* margin-bottom: 20px; */
+    
+}
+ .header .header1 a{
+    color: rgb(239, 190, 125);
+    font-size: 16px;
+}
+.header .header1 a:hover{
+    color: rgb(144, 46, 34);
+}
+.container{
+    width: 750px;
+    height: 100vh;
+    margin: 0 auto;
+}
+.book {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 200px;
+    margin-bottom: 20px;
+    background-color: white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+.book-image {
+    width: 150px; /* 图片固定宽度 */
+    height: 100%;
+    object-fit: cover; /* 保持图片比例 */
+}
+.introduce {
+    padding-left: 20px;
+    flex: 1;
+}
+.book-title {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+    color: #333;
+}
+.book-author {
+    font-size: 1rem;
+    margin-bottom: 10px;
+    color: #666;
+}
+
+/* 书籍简介 */
+.book-intro {
+    font-size: 0.9rem;
+    color: #555;
+}

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>css常用属性</title>
+    
+    <style>
+        .block{
+            background-color: azure;
+        }
+        .inline{
+            background-color: bisque;
+        }
+        .inline-block{
+            width: 100px;
+            height: 150px;
+        }
+        .div-inline{
+            display: inline;
+            background-color: cadetblue;
+        }
+        .span-inline-block{
+            display: inline-block;
+            background-color: cornsilk;
+            width: 1000px;
+            height: 400px;
+        }
+    </style>
+</head>
+    
+<body>
+    <h1 style="font: bolder 50px 'KaiTi';">这是一个font复合属性</h1>
+    <!-- 改变行间距 -->
+    <p style="line-height: 40px;">这是一段长文本德国捷克大使馆健康卡过多次改变计划vi和和长度和补充补充v纳达斯v都鳄鱼肉阿拉u欸阿婆的的夫妇和二汉服一燃料价格还是赶紧发烈女豪放女飞法国韩国日后让他和国际化不能盲目v额u护额oh v和vi据u我哦哦哦i额</p>
+    
+    <div class="block">这是一个块级元素</div>
+    <span class="inline">这是一个行内元素</span>
+    <!-- 行内块元素 -->
+    <img src="./1.jpg" alt="" class="inline-block">
+
+    <!-- 块级元素，行内元素，行内块元素三者的转换 -->
+    <h2> display</h2>
+    <div class="div-inline">这是一个由块级元素转换为行内元素的</div>
+    <span class="span-inline-block">这是一个转换成行内块元素的span标签</span>
+
+</body>
+</html>

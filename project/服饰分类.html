@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://kit.fontawesome.com/fdf3aede25.js" crossorigin="anonymous"></script>
+    <title>服饰分类</title>
+    <link rel="stylesheet" href="./服饰分类.css">
+</head>
+<body>
+    
+    <!-- 头部-->
+    <div class="header">
+        <!-- 图片 -->
+        <a href="./index.html">  <img src="./汉服-3.png"  alt="">  </a>
+         
+        <!-- 导航条 -->
+        <div class="nav">
+            <ul>
+                <li><a href="./index.html">首页</a></li>
+                <li><a href="./汉服概述.html">汉服概述</a></li>
+                <li><a href="./历史发展.html">历史发展</a></li>
+                <li><a href="./相关图书.html">相关图书</a></li>
+                <li><a href="./非遗工艺.html">非遗工艺</a></li>
+                <button class="btnLogin-popup">登录</button>
+                <!-- 搜索栏 -->
+                <div class="search">
+                    <div class="search-box">
+                        <a class="search-btn" href="#" >
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </a> 
+                        <div class="textInput">
+                            <input class="search-txt" type="text" name="" placeholder="请输入关键词搜索" >
+                            <div class="clear"></div>   
+                            <!-- <a class="go" href="#" ><i class="fa-solid fa-magnifying-glass"></i> </a>  -->
+                            <input type="submit" value="搜索" id="go">
+                        </div>
+                    </div>
+                </div>
+            </ul>
+            
+        </div>
+        <div class="header1">
+            <a href="./index.html">首页</a>>><a href="./服饰分类.html">服饰分类</a>
+        </div> 
+        
+    </div>
+        <!-- 登录 -->
+         <div class="wrapper">
+            <span class="icon-close"><ion-icon name="close">
+            </ion-icon></span>
+            <div class="form-box login">
+                <h2>登录</h2>
+                <form action="#">
+                    <div class="input-box">
+                        <span class="icon"><ion-icon name="mail"></ion-icon></span>
+                        <input type="email" required>
+                        <label for="">Email</label>
+                    </div>
+                    <div class="input-box">
+                        <span class="icon"><ion-icon name="lock-closed"></ion-icon></span>
+                        <input type="password" required>
+                        <label for="">Password</label>
+                    </div>
+                    <div class="remember-forget">
+                        <label for=""><input type="checkbox">记住我</label>
+                    <a href="#">忘记密码</a>
+                    </div>
+                    <button type="submit" class="btn">登录</button>
+                    <div class="login-register">
+                        <p>没有账号？
+                            <a href="#" class="register-link">注册</a>
+                        </p>
+                    </div>
+                </form>
+            </div>
+<!-- 注册 -->
+            <div class="form-box register">
+                <h2>注册</h2>
+                <form action="#">
+                    <div class="input-box">
+                        <span class="icon"><ion-icon name="person"></ion-icon></span>
+                        <input type="text" required>
+                        <label for="">用户名</label>
+                    </div>
+                    <div class="input-box">
+                        <span class="icon"><ion-icon name="mail"></ion-icon></span>
+                        <input type="email" required>
+                        <label for="">Email</label>
+                    </div>
+                    <div class="input-box">
+                        <span class="icon"><ion-icon name="lock-closed"></ion-icon></span>
+                        <input type="password" required>
+                        <label for="">Password</label>
+                    </div>
+                    <div class="remember-forget">
+                        <label for=""><input type="checkbox">我同意xxx隐私条例</label>
+                    </div>
+                    <button type="submit" class="btn">注册</button>
+                    <div class="login-register">
+                        <p>已有账号？
+                            <a href="#" class="login-link">登录</a>
+                        </p>
+                    </div>
+                </form>
+            </div>
+         </div>
+         <div id="Hanfu">
+            <div class="container">
+                <!-- 形制 -->
+                <div class="category">
+                    <ul>
+                        <li v-for="item in categories" :key="item.name">
+                            <button @click="selectCategory(item)">{{ item.name }}</button>
+                            <div v-if="selectedCategory === item.name" class="subcategories">
+                                <ul>
+                                    <li v-for="subItem in item.subcategories" :key="subItem.name">
+                                        <button @click="selectSubCategory(subItem)">{{ subItem.name }}</button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+        
+                <div class="content">
+                    <div class="image-gallery" v-if="currentImages.length > 0">
+                        <div v-for="(image, index) in currentImages" :key="index" class="image-item">
+                            <img :src="image.src" :alt="'形制图片 ' + index" />
+                            <div class="description">
+                                <p>{{ image.description }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+        <script src="./服饰分类.js"></script>
+         <script src="./汉服.js"></script>
+         <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+        <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+</body>
+</html>
